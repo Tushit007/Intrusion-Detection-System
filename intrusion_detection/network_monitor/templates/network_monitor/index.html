@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Intrusion Detection System</title>
+
+    <!-- Bootstrap for styling -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <style>
+        body {
+            background-color: #1c1c1c;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            margin-top: 50px;
+            max-width: 800px;
+            background: #2c2c2c;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0px 0px 10px rgba(255, 255, 255, 0.2);
+        }
+        .btn-custom {
+            background-color: #ff6600;
+            color: white;
+            border-radius: 5px;
+        }
+        .btn-custom:hover {
+            background-color: #ff4500;
+        }
+        input, select {
+            background: #333;
+            color: white;
+            border: 1px solid #555;
+        }
+        #networkResult {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 5px;
+            background: #444;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container text-center">
+        <h2>Intrusion Detection System</h2>
+        <p>Monitor & Detect Suspicious Network Activity</p>
+
+        <!-- Auto-detect Local IP & MAC -->
+        <div class="mb-3">
+            <label class="form-label">Your Detected IP Address:</label>
+            <input type="text" id="localIp" class="form-control" readonly>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Your Detected MAC Address:</label>
+            <input type="text" id="localMac" class="form-control" readonly>
+        </div>
+
+        <hr>
+
+        <!-- Manual Input -->
+        <h4>Enter Custom IP & MAC</h4>
+        <div class="mb-3">
+            <label class="form-label">IP Address:</label>
+            <input type="text" id="manualIp" class="form-control" placeholder="Enter IP (e.g. 192.168.1.100)">
+        </div>
+        <div class="mb-3">
+            <label class="form-label">MAC Address:</label>
+            <input type="text" id="manualMac" class="form-control" placeholder="Enter MAC (e.g. 00:1A:2B:3C:4D:5E)">
+        </div>
+
+        <!-- Scan Button -->
+        <button class="btn btn-custom" id="scanBtn">Scan Network</button>
+
+        <!-- Results -->
+        <div id="networkResult" class="mt-4"></div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- JavaScript to Auto-Detect IP & Handle Scan -->
+    <script>
+        // Function to detect local IP (WebRTC method)
+        function detectLocalIP() {
+            let ipField = document.getElementById("localIp");
+
+            let pc = new RTCPeerConnection();
+            pc.createDataChannel("");
+            pc.createOffer().then(offer => pc.setLocalDescription(offer));
+            pc.onicecandidate = event => {
+                if (event && event.candidate && event.candidate.candidate) {
+                    let ipMatch = event.candidate.candidate.match(/(\d+\.\d+\.\d+\.\d+)/);
+                    if (ipMatch) {
+                        ipField.value = ipMatch[1];
+                    }
+                    pc.close();
+                }
+            };
+        }
+
+        // Simulate MAC Address (Cannot be detected via browser)
+        document.getElementById("localMac").value = "00:1A:2B:3C:4D:XX";
+
+        // Call function to detect IP on page load
+        detectLocalIP();
+
+        // Scan Network Function
+        document.getElementById("scanBtn").addEventListener("click", function () {
+            let manualIp = document.getElementById("manualIp").value;
+            let manualMac = document.getElementById("manualMac").value;
+            let localIp = document.getElementById("localIp").value;
+
+            let scanUrl = `/network/scan/?ip=${manualIp || localIp}&mac=${manualMac}`;
+
+            fetch(scanUrl)
+                .then(response => response.json())
+                .then(data => {
+                    let resultHTML = "<h3>Detected Devices:</h3><ul>";
+                    data.devices.forEach(device => {
+                        resultHTML += `<li>IP: ${device.IP} | MAC: ${device.MAC}</li>`;
+                    });
+                    resultHTML += "</ul>";
+                    document.getElementById("networkResult").innerHTML = resultHTML;
+                })
+                .catch(error => console.error("Error:", error));
+        });
+    </script>
+
+</body>
+</html>
